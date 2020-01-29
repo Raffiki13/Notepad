@@ -1,0 +1,339 @@
+# Modules
+import os
+import time
+import speech_recognition as sr
+from fuzzywuzzy import fuzz
+import pyttsx3
+import datetime
+import keyboard
+import pyautogui
+import webbrowser
+import openpyxl
+import requests
+
+# Consts
+API_KEY_TRANS = 'trnsl.1.1.20200127T163554Z.cbecac5e09123a54.17e20387c1dbdd6cf289f1fbda9f05d838f15dd0'
+r = sr.Recognizer()
+m = sr.Microphone(device_index = 1)
+speak_engine = pyttsx3.init()
+
+# Functions
+def listen():
+    audio = r.listen(source, phrase_time_limit = 2)
+    cmd = r.recognize_google(audio, language="ru-RU").lower()
+    if (cmd != None): 
+        return cmd
+    else:
+        speak("Повторите.")
+        listen()
+
+def speak(what):
+    print(what)
+    speak_engine.say(what)
+    speak_engine.runAndWait()
+    speak_engine.stop()
+
+def find_month(data, day):
+    if (data == 'январь'):
+        return 1 + int(day)
+
+    if (data == 'февраль'):
+        return 32 + int(day)
+
+    if (data == 'март'):
+        return 61 + int(day)
+
+    if (data == 'апрель'):
+        return 92 + int(day)
+
+    if (data == 'май'):
+        return 122 + int(day)
+
+    if (data == 'июнь'):
+        return 153 + int(day)
+
+    if (data == 'июль'):
+        return 183 + int(day)
+
+    if (data == 'август'):
+        return 214 + int(day)
+
+    if (data == 'сентябрь'):
+        return 245 + int(day)
+
+    if (data == 'октябрь'):
+        return 275 + int(day)
+
+    if (data == 'ноябрь'):
+        return 306 + int(day)
+
+    if (data == 'декабрь'):
+        return 336 + int(day)
+
+def find_time(time_first):
+    if (time_first.find('полночь')!=-1) or (time_first.find('00:00')!=-1):
+        return 'B'
+        
+    if (time_first.find('00:30')!=-1) or (time_first.find('полпервого ночи')!=-1):
+        return 'C'
+        
+    if (time_first.find('час ночи')!=-1) or (time_first.find('01:00')!=-1):
+        return 'D'
+
+    if (time_first.find('01:30')!=-1):
+        return 'E'
+
+    if (time_first.find('2 часа ночи')!=-1) or (time_first.find('02:00')!=-1):
+        return 'F'
+
+    if (time_first.find('полтретьего ночи')!=-1) or (time_first.find('02:30')!=-1):
+        return 'G'
+            
+    if (time_first.find('3 часа ночи')!=-1) or (time_first.find('03:00')!=-1):
+        return 'H'
+
+    if (time_first.find('полчетвертого ночи')!=-1) or (time_first.find('03:30')!=-1):
+        return 'I'
+
+    if (time_first.find('4 часа ночи')!=-1) or (time_first.find('04:00')!=-1):
+        return 'J'
+
+    if (time_first.find('полпятого ночи')!=-1) or (time_first.find('04:30')!=-1):
+        return 'K'
+
+    if (time_first.find('5 часов утра')!=-1) or (time_first.find('05:00')!=-1):
+        return 'L'
+
+    if (time_first.find('полшестого утра')!=-1) or (time_first.find('05:30')!=-1):
+        return 'M'
+
+    if (time_first.find('6 часов утра')!=-1) or (time_first.find('06:00')!=-1):
+        return 'N'
+
+    if (time_first.find('полседьмого утра')!=-1) or (time_first.find('06:30')!=-1):
+        return 'O'
+
+    if (time_first.find('7 часов утра')!=-1) or (time_first.find('07:00')!=-1):
+        return 'P'
+
+    if (time_first.find('полвосьмого утра')!=-1) or (time_first.find('07:30')!=-1):
+        return 'Q'
+
+    if (time_first.find('8 часов утра')!=-1) or (time_first.find('08:00')!=-1):
+        return 'R'
+
+    if (time_first.find('полдевятого утра')!=-1) or (time_first.find('08:30')!=-1):
+        return 'S'
+
+    if (time_first.find('9 часов утра')!=-1) or (time_first.find('09:00')!=-1):
+        return 'T'
+
+    if (time_first.find('полдесятого утра')!=-1) or (time_first.find('09:30')!=-1):
+        return 'U'
+
+    if (time_first.find('10 часов утра')!=-1) or (time_first.find('10:00')!=-1):
+        return 'V'
+
+    if (time_first.find('полодиннадцатого утра')!=-1) or (time_first.find('10:30')!=-1):
+        return 'W'
+
+    if (time_first.find('11 часов утра')!=-1) or (time_first.find('11:00')!=-1):
+        return 'X'
+
+    if (time_first.find('полдвенадцатого')!=-1) or (time_first.find('11:30')!=-1):
+        return 'Y'
+
+    if (time_first.find('12:00')!=-1) or (time_first.find('полдень')!=-1):
+        return 'Z'
+
+    if (time_first.find('полпервого дня')!=-1) or (time_first.find('12:30')!=-1):
+        return 'AA'
+
+    if (time_first.find('час дня')!=-1) or (time_first.find('13:00')!=-1):
+        return 'AB'
+
+    if (time_first.find('полвторого дня')!=-1) or (time_first.find('13:30')!=-1):
+        return 'AC'
+
+    if (time_first.find('2 часа дня')!=-1) or (time_first.find('14:00')!=-1):
+        return 'AD'
+
+    if (time_first.find('полтретьего дня')!=-1) or (time_first.find('14:30')!=-1):
+        return 'AE'
+
+    if (time_first.find('3 часа дня')!=-1) or (time_first.find('15:00')!=-1):
+        return 'AF'
+
+    if (time_first.find('полчетвертого дня')!=-1) or (time_first.find('15:30')!=-1):
+        return 'AG'
+
+    if (time_first.find('4 часа дня')!=-1) or (time_first.find('16:00')!=-1):
+        return 'AH'
+
+    if (time_first.find('полпятого вечера')!=-1) or (time_first.find('16:30')!=-1):
+        return 'AI'
+
+    if (time_first.find('5 часов вечера')!=-1) or (time_first.find('17:00')!=-1):
+        return 'AJ'
+
+    if (time_first.find('полшестого вечера')!=-1) or (time_first.find('17:30')!=-1):
+        return 'AK'
+
+    if (time_first.find('6 часов вечера')!=-1) or (time_first.find('18:00')!=-1):
+        return 'AL'
+
+    if (time_first.find('полседьмого вечера')!=-1) or (time_first.find('18:30')!=-1):
+        return 'AM'
+
+    if (time_first.find('7 часов вечера')!=-1) or (time_first.find('19:00')!=-1):
+        return time = 'AN'
+
+    if (time_first.find('полвосьмого вечера')!=-1) or (time_first.find('19:30')!=-1):
+        return 'AO'
+
+    if (time_first.find('8 часов вечера')!=-1) or (time_first.find('20:00')!=-1):
+        return 'AP'
+
+    if (time_first.find('полдевятого вечера')!=-1) or (time_first.find('20:30')!=-1):
+        return 'AQ'
+
+    if (time_first.find('9 часов вечера')!=-1) or (time_first.find('21:00')!=-1):
+        return 'AR'
+
+    if (time_first.find('полдесятого ночи')!=-1) or (time_first.find('21:30')!=-1):
+        return 'AS' 
+
+    if (time_first.find('10 часов ночи')!=-1) or (time_first.find('22:00')!=-1):
+        return 'AT'
+            
+    if (time_first.find('полодиннадцатого ночи')!=-1) or (time_first.find('22:30')!=-1):
+        return 'AU'
+            
+    if (time_first.find('11 часов ночи')!=-1) or (time_first.find('23:00')!=-1):
+        return 'AV'
+
+    if (time_first.find('полдвенадцатого ночи')!=-1) or (time_first.find('23:30')!=-1):
+        return 'AW'
+
+###################################################################################################
+# Main Program
+speak("Я внимательно Вас слушаю.")
+with m as source:
+    r.adjust_for_ambient_noise(source)
+    try:
+        while True:
+            while True:
+                cmd = listen()                
+                print (cmd)
+                if (cmd.find("анекдот")!=-1):
+                    speak("Я не считаю, что анекдоты это смешно. Вам необходимо улучшить Ваше чувство юмора.")
+                    break
+
+                if (cmd.find("калькулятор")!=-1):
+                    speak("Открываю калькулятор")
+                    os.system('calc')
+                    break
+
+                if (cmd.find("выключи звук")!=-1) or (cmd.find("без звука")!=-1):
+                    pyautogui.hotkey('volumemute')
+                    break
+
+                if (cmd.find("прибавь звук")!=-1) or (cmd.find("громче")!=-1):
+                    pyautogui.hotkey('volumeup')
+                    break
+
+                if (cmd.find("запусти браузер")!=-1) or (cmd.find("браузер")!=-1):
+                    speak("Запускаю лису")
+                    os.startfile(r'C:/Program Files (x86)/Mozilla Firefox/firefox.exe')
+                    break
+
+                if (cmd.find("блокнот")!=-1):
+                    speak("Открываю блокнот")
+                    os.system('notepad')
+                    break
+
+                if (cmd.find("ютуб")!=-1):
+                    speak("Хорошего просмотра!")
+                    webbrowser.open_new('https://www.youtube.com/')
+                    break
+
+                if (cmd.find("вконтакте")!=-1) or (cmd.find("в контакте")!=-1):
+                    speak("Напишите друзьям, они будут рады!")
+                    webbrowser.open_new('https://vk.com/')
+                    break
+
+                if (cmd.find("перевод")!=-1):
+                    speak ("Русский язык стоит по умолчанию. Какой второй язык Вы выберете?")
+                    print ("Английский\nФранцузский\nНемецкий\nИспанский\nКитайский")
+                    language = listen()
+                    speak ("Перевести с русского или на русский?")
+                    pol = listen()
+                    print (pol)
+                    # Выбор языка
+                    if (language.find("английский")!=-1):
+                        if (pol.find("на")):
+                            language = 'en-ru'
+                        else:
+                            language = 'ru-en'
+                    if (language.find("французский")!=-1):
+                        if (pol.find("на")):
+                            language = 'fr-ru'
+                        else:
+                            language = 'ru-fr'
+                    if (language.find("немецкий")!=-1):
+                        if (pol.find("на")):
+                            language = 'de-ru'
+                        else:
+                            language = 'ru-de'
+                    if (language.find("китайский")!=-1):
+                        if (pol.find("на")):
+                            language = 'zh-ru'
+                        else:
+                            language = 'ru-zh'
+                    if (language.find("испанский")!=-1):
+                        if (pol.find("на")):
+                            language = 'es-ru'
+                        else:
+                            language = 'ru-es'
+
+                    speak ("Что вы хотите перевести?")
+                    frase = listen()
+                    print (frase)
+                    # Получение данных
+                    url = 'https://translate.yandex.net/api/v1.5/tr.json/translate'
+                    params = dict(key = API_KEY_TRANS, text = frase, lang = language)
+                    res = requests.get(url, params = params)
+                    json = res.json()
+                    print(json)
+                    break
+
+                if (cmd.find("органайзер")!=-1) or (cmd.find("ежедневник")!=-1):
+
+                    speak("Какой месяц смотреть?")
+                    data_only = listen()
+                    print (data_only)
+
+                    speak("Какой день?")
+                    day_only = listen()
+                    print (day_only)
+
+                    speak("Какое время?")
+                    time_first = listen()
+                    print (time_first)
+
+                    month = find_month(data_only, day_only)
+                    time = find_time(time_first)
+
+                    wb = openpyxl.load_workbook('C:/Users/Ирина/Desktop/Python/Ежедневник.xlsx', data_only = True)
+                    sheet = wb['Ежедневник 2020']
+                    c = time + str(month)
+                    print (sheet[c].value)
+                    break
+                else:
+                    speak('Я так не умею!')
+                    break
+            if cmd.find("ты мне больше не нужен") or cmd.find("пока") or cmd.find("до свидания") or cmd.find("питание на ноль") or cmd.find("увидимся"):
+                speak ("Был рад помочь ;)")
+                break
+    except sr.UnknownValueError:
+        pass
