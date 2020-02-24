@@ -2,7 +2,6 @@
 import os
 import time
 import speech_recognition as sr
-from fuzzywuzzy import fuzz
 import pyttsx3
 import datetime
 import keyboard
@@ -10,21 +9,57 @@ import pyautogui
 import webbrowser
 import openpyxl
 import requests
+import PySimpleGUI as sg
+from bs4 import BeautifulSoup as bs
+
+#Interface
+sg.theme('DarkAmber')
+layout = [  [sg.Text('Text or say what to do')],
+            [sg.Input(do_not_clear = False)],
+            [sg.RButton('Send'), sg.RButton('Say'), sg.RButton('Exit')]]
+window = sg.Window('Skarlett-Your personal assistant', layout)
 
 # Consts
 API_KEY_TRANS = 'trnsl.1.1.20200127T163554Z.cbecac5e09123a54.17e20387c1dbdd6cf289f1fbda9f05d838f15dd0'
+headers = {'accept': '*/*', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0'}
+base_url_python = 'https://hh.ru/search/resume?text=python&area=1&clusters=true&exp_period=all_time&logic=normal&pos=full_text&st=resumeSearch&search_period=30&order_by=relevance'
+base_url_java = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=java'
+base_url_c = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=c%2B%2B'
+base_url_teacher_nach = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%A3%D1%87%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%BD%D0%B0%D1%87%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D1%85+%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%BE%D0%B2&from=suggest_post'
+base_url_teacher_math = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%A3%D1%87%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%BC%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D0%BA%D0%B8&from=suggest_post'
+base_url_teacher_rus = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%A3%D1%87%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE%D0%B3%D0%BE+%D1%8F%D0%B7%D1%8B%D0%BA%D0%B0+%D0%B8+%D0%BB%D0%B8%D1%82%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D1%8B&from=suggest_post'
+base_url_teacher_bio = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%A3%D1%87%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%B1%D0%B8%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D0%B8'
+base_url_teacher_inf = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D1%83%D1%87%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%B8%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D0%B8%D0%BA%D0%B8'
+base_url_man = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%BC%D0%B5%D0%BD%D0%B5%D0%B4%D0%B6%D0%B5%D1%80'
+base_url_sto = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D1%81%D1%82%D0%BE%D0%BC%D0%B0%D1%82%D0%BE%D0%BB%D0%BE%D0%B3'
+base_url_ner = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%BD%D0%B5%D0%B2%D1%80%D0%BE%D0%BB%D0%BE%D0%B3'
+base_url_gin = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%93%D0%B8%D0%BD%D0%B5%D0%BA%D0%BE%D0%BB%D0%BE%D0%B3&from=suggest_post'
+base_url_hir = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%5Bbhehu'
+base_url_buh = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%91%D1%83%D1%85%D0%B3%D0%B0%D0%BB%D1%82%D0%B5%D1%80+'
+base_url_log = 'https://hh.ru/search/resume?clusters=true&exp_period=all_time&logic=normal&pos=full_text&clusters=true&area=1&order_by=relevance&search_period=30&no_magic=false&st=resumeSearch&text=%D0%BB%D0%BE%D0%B3%D0%BE%D0%BF%D0%B5%D0%B4'
 r = sr.Recognizer()
 m = sr.Microphone(device_index = 1)
 speak_engine = pyttsx3.init()
 
 # Functions
+def get_info():
+    event, values = window.read()
+    if event in ('Say'):
+        x = listen()
+        return x
+    elif event in ('Send'):
+        x = values[0]
+        return x
+    elif event in ('Exit'):
+        return 0
+
 def listen():
     audio = r.listen(source, phrase_time_limit = 2)
     cmd = r.recognize_google(audio, language="ru-RU").lower()
     if (cmd != None): 
         return cmd
     else:
-        speak("Повторите.")
+        speak("повторите")
         listen()
 
 def speak(what):
@@ -32,6 +67,38 @@ def speak(what):
     speak_engine.say(what)
     speak_engine.runAndWait()
     speak_engine.stop()
+
+def find_url(cmd):
+    if (cmd.find('учитель начальных классов')!=-1):
+        return base_url_teacher_nach
+    if (cmd.find('учитель математики')!=-1):
+        return base_url_teacher_math
+    if (cmd.find('учитель русского')!=-1):
+        return base_url_teacher_rus
+    if (cmd.find('учитель биологии')!=-1):
+        return base_url_teacher_bio
+    if (cmd.find('менеджер')!=-1):
+        return base_url_man
+    if (cmd.find('питон')!=-1):
+        return base_url_python
+    if (cmd.find('джава')!=-1):
+        return base_url_java
+    if (cmd.find('си')!=-1):
+        return base_url_c
+    if (cmd.find('стоматолог')!=-1):
+        return base_url_sto
+    if (cmd.find('бухгалтер')!=-1):
+        return base_url_buh
+    if (cmd.find('логопед')!=-1):
+        return base_url_log
+    if (cmd.find('учитель информатики')!=-1):
+        return base_url_inf
+    if (cmd.find('невролог')!=-1):
+        return base_url_ner
+    if (cmd.find('хирург')!=-1):
+        return base_url_hir
+    if (cmd.find('гинеколог')!=-1):
+        return base_url_gin
 
 def find_month(data, day):
     if (data == 'январь'):
@@ -77,58 +144,58 @@ def find_time(time_first):
     if (time_first.find('00:30')!=-1) or (time_first.find('полпервого ночи')!=-1):
         return 'C'
         
-    if (time_first.find('час ночи')!=-1) or (time_first.find('01:00')!=-1):
+    if (time_first.find('час ночи')!=-1) or (time_first.find('1:00')!=-1):
         return 'D'
 
     if (time_first.find('01:30')!=-1):
         return 'E'
 
-    if (time_first.find('2 часа ночи')!=-1) or (time_first.find('02:00')!=-1):
+    if (time_first.find('2 часа ночи')!=-1) or (time_first.find('2:00')!=-1):
         return 'F'
 
-    if (time_first.find('полтретьего ночи')!=-1) or (time_first.find('02:30')!=-1):
+    if (time_first.find('полтретьего ночи')!=-1) or (time_first.find('2:30')!=-1):
         return 'G'
             
-    if (time_first.find('3 часа ночи')!=-1) or (time_first.find('03:00')!=-1):
+    if (time_first.find('3 часа ночи')!=-1) or (time_first.find('3:00')!=-1):
         return 'H'
 
-    if (time_first.find('полчетвертого ночи')!=-1) or (time_first.find('03:30')!=-1):
+    if (time_first.find('полчетвертого ночи')!=-1) or (time_first.find('3:30')!=-1):
         return 'I'
 
-    if (time_first.find('4 часа ночи')!=-1) or (time_first.find('04:00')!=-1):
+    if (time_first.find('4 часа ночи')!=-1) or (time_first.find('4:00')!=-1):
         return 'J'
 
-    if (time_first.find('полпятого ночи')!=-1) or (time_first.find('04:30')!=-1):
+    if (time_first.find('полпятого ночи')!=-1) or (time_first.find('4:30')!=-1):
         return 'K'
 
-    if (time_first.find('5 часов утра')!=-1) or (time_first.find('05:00')!=-1):
+    if (time_first.find('5 часов утра')!=-1) or (time_first.find('5:00')!=-1):
         return 'L'
 
-    if (time_first.find('полшестого утра')!=-1) or (time_first.find('05:30')!=-1):
+    if (time_first.find('полшестого утра')!=-1) or (time_first.find('5:30')!=-1):
         return 'M'
 
-    if (time_first.find('6 часов утра')!=-1) or (time_first.find('06:00')!=-1):
+    if (time_first.find('6 часов утра')!=-1) or (time_first.find('6:00')!=-1):
         return 'N'
 
-    if (time_first.find('полседьмого утра')!=-1) or (time_first.find('06:30')!=-1):
+    if (time_first.find('полседьмого утра')!=-1) or (time_first.find('6:30')!=-1):
         return 'O'
 
-    if (time_first.find('7 часов утра')!=-1) or (time_first.find('07:00')!=-1):
+    if (time_first.find('7 часов утра')!=-1) or (time_first.find('7:00')!=-1):
         return 'P'
 
-    if (time_first.find('полвосьмого утра')!=-1) or (time_first.find('07:30')!=-1):
+    if (time_first.find('полвосьмого утра')!=-1) or (time_first.find('7:30')!=-1):
         return 'Q'
 
-    if (time_first.find('8 часов утра')!=-1) or (time_first.find('08:00')!=-1):
+    if (time_first.find('8 часов утра')!=-1) or (time_first.find('8:00')!=-1):
         return 'R'
 
-    if (time_first.find('полдевятого утра')!=-1) or (time_first.find('08:30')!=-1):
-        return 'S'
-
-    if (time_first.find('9 часов утра')!=-1) or (time_first.find('09:00')!=-1):
+    if (time_first.find('полдевятого утра')!=-1) or (time_first.find('8:30')!=-1):
+        return 'S'   
+    
+    if (time_first.find('9 часов утра')!=-1) or (time_first.find('9:00')!=-1):
         return 'T'
 
-    if (time_first.find('полдесятого утра')!=-1) or (time_first.find('09:30')!=-1):
+    if (time_first.find('полдесятого утра')!=-1) or (time_first.find('9:30')!=-1):
         return 'U'
 
     if (time_first.find('10 часов утра')!=-1) or (time_first.find('10:00')!=-1):
@@ -186,7 +253,7 @@ def find_time(time_first):
         return 'AM'
 
     if (time_first.find('7 часов вечера')!=-1) or (time_first.find('19:00')!=-1):
-        return time = 'AN'
+        return 'AN'
 
     if (time_first.find('полвосьмого вечера')!=-1) or (time_first.find('19:30')!=-1):
         return 'AO'
@@ -217,16 +284,19 @@ def find_time(time_first):
 
 ###################################################################################################
 # Main Program
-speak("Я внимательно Вас слушаю.")
 with m as source:
+    speak("чем могу вам помочь")
     r.adjust_for_ambient_noise(source)
     try:
         while True:
+            cmd = None
+            cmd = get_info()
+            if cmd == 0:
+                break
+
             while True:
-                cmd = listen()                
-                print (cmd)
                 if (cmd.find("анекдот")!=-1):
-                    speak("Я не считаю, что анекдоты это смешно. Вам необходимо улучшить Ваше чувство юмора.")
+                    speak("Я не считаю, что анекдоты это смешно. Вам необходимо улучшить Ваше чувство юмора :)")
                     break
 
                 if (cmd.find("калькулятор")!=-1):
@@ -265,61 +335,77 @@ with m as source:
                 if (cmd.find("перевод")!=-1):
                     speak ("Русский язык стоит по умолчанию. Какой второй язык Вы выберете?")
                     print ("Английский\nФранцузский\nНемецкий\nИспанский\nКитайский")
-                    language = listen()
+                    language = get_info()
+                    if language == 0:
+                        break
+                    
                     speak ("Перевести с русского или на русский?")
-                    pol = listen()
-                    print (pol)
+                    pol = get_info()
+                    if pol == 0:
+                        break
+                    
                     # Выбор языка
                     if (language.find("английский")!=-1):
-                        if (pol.find("на")):
+                        if (pol.find("на")!=-1):
                             language = 'en-ru'
                         else:
                             language = 'ru-en'
                     if (language.find("французский")!=-1):
-                        if (pol.find("на")):
+                        if (pol.find("на")!=-1):
                             language = 'fr-ru'
                         else:
                             language = 'ru-fr'
                     if (language.find("немецкий")!=-1):
-                        if (pol.find("на")):
+                        if (pol.find("на")!=-1):
                             language = 'de-ru'
                         else:
                             language = 'ru-de'
                     if (language.find("китайский")!=-1):
-                        if (pol.find("на")):
+                        if (pol.find("на")!=-1):
                             language = 'zh-ru'
                         else:
                             language = 'ru-zh'
                     if (language.find("испанский")!=-1):
-                        if (pol.find("на")):
+                        if (pol.find("на")!=-1):
                             language = 'es-ru'
                         else:
                             language = 'ru-es'
 
                     speak ("Что вы хотите перевести?")
-                    frase = listen()
-                    print (frase)
+                    frase = get_info()
+                    if frase == 0:
+                        break
+                    
                     # Получение данных
                     url = 'https://translate.yandex.net/api/v1.5/tr.json/translate'
                     params = dict(key = API_KEY_TRANS, text = frase, lang = language)
                     res = requests.get(url, params = params)
                     json = res.json()
-                    print(json)
+                    print (json)
+                    #Вывод
+                    sg.theme('DarkAmber')
+                    layout = [[sg.Text(json['text'], font = ('Consolas', 20))]]
+                    window = sg.Window('Translation', layout = layout, margins = (0, 0), resizable = True, return_keyboard_events = True)
                     break
 
                 if (cmd.find("органайзер")!=-1) or (cmd.find("ежедневник")!=-1):
 
+                    speak("вы хотите записать или уточнить план?")
+                    cmd = get_info()
+                    if cmd == 0:
+                        break
                     speak("Какой месяц смотреть?")
-                    data_only = listen()
-                    print (data_only)
-
+                    data_only = get_info()
+                    if data_only == 0:
+                        break
                     speak("Какой день?")
-                    day_only = listen()
-                    print (day_only)
-
+                    day_only = get_info()
+                    if day_only == 0:
+                        break
                     speak("Какое время?")
-                    time_first = listen()
-                    print (time_first)
+                    time_first = get_info()
+                    if time_first == 0:
+                        break
 
                     month = find_month(data_only, day_only)
                     time = find_time(time_first)
@@ -327,13 +413,71 @@ with m as source:
                     wb = openpyxl.load_workbook('C:/Users/Ирина/Desktop/Python/Ежедневник.xlsx', data_only = True)
                     sheet = wb['Ежедневник 2020']
                     c = time + str(month)
-                    print (sheet[c].value)
+                    if cmd.find("записать")!=-1:
+                        speak ('что записать в ежедневник?')
+                        cmd = get_info()
+                        if cmd == 0:
+                            break
+                        sheet[c].value = cmd
+                        wb.save('C:/Users/Ирина/Desktop/Python/Ежедневник.xlsx')
+                        speak('я всё записала')
+                        break
+                    else:
+                        text = 'судя по расписанию у вас ' + sheet[c].value
+                        speak (text)
+                        break
+
+                if cmd.find("резюме")!=-1:
+                    speak ('людей какой профессии вы хотите найти?')
+                    cmd = get_info()
+                    if cmd == 0:
+                        break
+                    base_url = find_url(cmd)
+                    session = requests.Session()
+                    request = session.get(base_url, headers = headers)
+                    if request.status_code == 200:
+                        soup = bs(request.content, 'html.parser')
+                        divs = soup.find_all('div', attrs = {'data-qa':'resume-serp__resume'})
+                        f = open ('text.txt', 'w')
+                        f.close()
+                        n = 0
+                        f = open('text.txt', 'a')
+                        for div in divs:
+                            n+=1
+                            title = div.find('a', attrs = {'data-qa':'resume-serp__resume-title'}).text
+                            href = div.find('a', attrs = {'data-qa':'resume-serp__resume-title'})['href']
+                            age = div.find('span', attrs = {'data-qa':'resume-serp__resume-age'}).text
+                            exp = div.find('div', attrs = {'data-qa':'resume-serp__resume-excpirience-sum'}).text
+                            text = str(n) + '. ' + title + '\nСсылка:"https://hh.ru' + href + '"\nВозраст: ' + age + '\nОпыт работы: ' + exp + '\n'
+                            f.write(text)
+                    else:
+                        print ('ERROR')
+                    f.close()
+                    os.startfile(r'text.txt')
+                    speak ('вот что я смогла найти')
+                    break
+
+                if (cmd.find("спасибо")!=-1 or cmd.find("ты лучшая")!=-1 or cmd.find("прекрасно сработано")!=-1):
+                    speak('всегда приятно работать на руководителя который тебя ценит')
+                if (cmd.find("привет")!=-1 or cmd.find("здравствуй")!=-1 or cmd.find("добр")!=-1):
+                    speak('рада вас видеть')
+                if (cmd.find("все хорошо")!=-1 or cmd.find("как ты")!=-1 or cmd.find("как дела")!=-1):
+                    speak('я робот у меня нет настроения в этом моё преимущество в работе')
+                if (cmd.find("что ты умеешь")!=-1 or cmd.find("функции")!=-1 or cmd.find("как с тобой работать")!=-1):
+                    speak('меня зовут скарлетт. я работаю только в качестве персонального секретаря,'
+                          'вы можете говорить или писать в поле команды которые' 
+                          'я в последующем буду исполнять я могу записывать или напоминать '
+                          'те или иные события из вашего электронного ежедневника, '
+                          'также могу переводить оперируя пятью иностранными языками, '
+                          'могу предоставлять вам различные резюме специалистов пятнадцати профессий, '
+                          'также у меня есть полномочия управлять основными функциями операционной системы Windows '
+                          '(регулировка звука, открытие встроенных приложений). Подробнее читайте в руководстве')
                     break
                 else:
                     speak('Я так не умею!')
                     break
-            if cmd.find("ты мне больше не нужен") or cmd.find("пока") or cmd.find("до свидания") or cmd.find("питание на ноль") or cmd.find("увидимся"):
-                speak ("Был рад помочь ;)")
-                break
+
     except sr.UnknownValueError:
         pass
+window.close()
+speak ("Была рада помочь")
