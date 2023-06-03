@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SceneData version="v1.0">
+    <GraphicsItemList>
+        <parent xbeg="50" ybeg="50" funcName="main()">
+            <child xend="250" yend="50" funcName="func1()"/>
+            <child xend="250" yend="100" funcName="func3()"/>
+        </parent>
+        <parent xbeg="250" ybeg="150" funcName="func1()">
+            <child xend="450" yend="50" funcName="func2()"/>
+        </parent>
+        <parent xbeg="450" ybeg="100" funcName="func2()">
+            <child xend="650" yend="50" funcName="func5()"/>
+        </parent>
+    </GraphicsItemList>
+    <parent xbeg="250" ybeg="200" funcName="func3()">
+        <child xend="450" yend="150" funcName="func4()"/>
+    </parent>
+</SceneData>
